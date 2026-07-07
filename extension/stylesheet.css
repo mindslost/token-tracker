@@ -1,0 +1,91 @@
+.token-tracker-header {
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 6px 12px;
+}
+
+.token-tracker-sub {
+    font-size: 0.85em;
+    opacity: 0.65;
+    padding: 0 12px 6px 12px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.token-tracker-group {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.token-tracker-group-title {
+    font-weight: bold;
+    color: #3584e4; /* Gnome Blue */
+    padding: 6px 12px;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+.token-tracker-bucket-row {
+    padding: 6px 12px;
+    spacing: 6px;
+}
+
+.token-tracker-bucket-header {
+    spacing: 12px;
+}
+
+.token-tracker-bucket-name {
+    font-size: 0.95em;
+}
+
+.token-tracker-bucket-fraction {
+    font-size: 0.9em;
+    font-weight: bold;
+    text-align: right;
+}
+
+.token-tracker-progress-bg {
+    background-color: rgba(128, 128, 128, 0.15);
+    border-radius: 6px;
+    height: 6px;
+    margin: 6px 0;
+    width: 240px;
+}
+
+.token-tracker-progress-fill {
+    background-color: #26a269; /* Success Green */
+    border-radius: 6px;
+    height: 6px;
+}
+
+.token-tracker-progress-fill.warning {
+    background-color: #e5a50a; /* Warning Yellow */
+}
+
+.token-tracker-progress-fill.danger {
+    background-color: #c01c28; /* Danger Red */
+}
+
+.token-tracker-bucket-details {
+    font-size: 0.8em;
+    opacity: 0.5;
+    padding-top: 2px;
+}
+
+.token-tracker-footer {
+    padding: 6px 12px;
+    spacing: 12px;
+}
+
+.token-tracker-refresh-button {
+    border-radius: 6px;
+    padding: 6px;
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+.token-tracker-refresh-button:hover {
+    background-color: rgba(128, 128, 128, 0.25);
+}
+
+.token-tracker-refresh-button:active {
+    background-color: rgba(128, 128, 128, 0.35);
+}

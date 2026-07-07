@@ -1,0 +1,14 @@
+{
+  "uuid": "token-tracker@jason.projects",
+  "name": "Token Tracker",
+  "description": "Monitor rate limits and quotas for Google Antigravity and other AI coding assistants.",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "url": "https://github.com/jason/token-tracker"
+}
