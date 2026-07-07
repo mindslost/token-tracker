@@ -150,12 +150,13 @@ const TokenTrackerButton = GObject.registerClass(
                 proc.communicate_utf8_async(null, null, (obj, res) => {
                     try {
                         const [success, stdout, stderr] = obj.communicate_utf8_finish(res);
-                        if (success && stdout) {
-                            const data = JSON.parse(stdout);
-                            this._refreshUI(data);
-                        } else {
+                        if (!success || !stdout) {
                             this._handleError(stderr || 'CLI execution failed.');
+                            return;
                         }
+                        
+                        const data = JSON.parse(stdout);
+                        this._refreshUI(data);
                     } catch (e) {
                         this._handleError(e.message);
                     } finally {
@@ -173,115 +174,117 @@ const TokenTrackerButton = GObject.registerClass(
         _refreshUI(data) {
             this._quotaContainer.destroy_all_children();
 
-            if (data.status === 'connected') {
-                this._statusLabel.set_text(`${data.email} (${data.plan})`);
-                
-                if (data.groups && data.groups.length > 0) {
-                    for (const group of data.groups) {
-                        const groupBox = new St.BoxLayout({
-                            vertical: true,
-                            style_class: 'token-tracker-group'
-                        });
+            if (data.status !== 'connected') {
+                this._handleError(data.error || 'Disconnected from helper.');
+                return;
+            }
 
-                        const groupTitle = new St.Label({
-                            text: group.name,
-                            style_class: 'token-tracker-group-title'
-                        });
-                        groupBox.add_child(groupTitle);
+            this._statusLabel.set_text(`${data.email} (${data.plan})`);
 
-                        for (const bucket of group.buckets) {
-                            const bucketBox = new St.BoxLayout({
-                                vertical: true,
-                                style_class: 'token-tracker-bucket-row'
-                            });
+            // Update timestamp
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this._updatedLabel.set_text(`Updated at ${timeStr}`);
 
-                            // Row containing Name and remaining fraction
-                            const labelRow = new St.BoxLayout({
-                                vertical: false,
-                                style_class: 'token-tracker-bucket-header'
-                            });
+            if (!data.groups || data.groups.length === 0) {
+                const noDataLabel = new St.Label({
+                    text: 'No active quotas found.',
+                    style_class: 'token-tracker-bucket-details',
+                    style: 'padding: 10px;'
+                });
+                this._quotaContainer.add_child(noDataLabel);
+                return;
+            }
 
-                            const bucketName = new St.Label({
-                                text: bucket.name,
-                                style_class: 'token-tracker-bucket-name',
-                                x_expand: true
-                            });
-                            labelRow.add_child(bucketName);
+            for (const group of data.groups) {
+                const groupBox = new St.BoxLayout({
+                    vertical: true,
+                    style_class: 'token-tracker-group'
+                });
 
-                            let fraction = bucket.remaining_fraction !== null ? bucket.remaining_fraction : 1.0;
-                            fraction = Math.max(0.0, Math.min(1.0, fraction));
-                            const percent = Math.round(fraction * 100);
-                            const percentLabel = new St.Label({
-                                text: `${percent}%`,
-                                style_class: 'token-tracker-bucket-fraction'
-                            });
-                            labelRow.add_child(percentLabel);
-                            bucketBox.add_child(labelRow);
+                const groupTitle = new St.Label({
+                    text: group.name,
+                    style_class: 'token-tracker-group-title'
+                });
+                groupBox.add_child(groupTitle);
 
-                            // Progress Bar
-                            const progressBg = new St.BoxLayout({
-                                style_class: 'token-tracker-progress-bg'
-                            });
-                            
-                            let fillClass = 'token-tracker-progress-fill';
-                            if (fraction < 0.4) {
-                                fillClass += ' danger';
-                            } else if (fraction <= 0.7) {
-                                fillClass += ' warning';
-                            }
-
-                            const progressFill = new St.Widget({
-                                style_class: fillClass
-                            });
-                            progressBg.add_child(progressFill);
-
-                            // Dynamically update fill width when background is allocated/resized
-                            progressBg.connect('notify::width', () => {
-                                const bgWidth = progressBg.width;
-                                if (bgWidth > 0) {
-                                    progressFill.width = Math.round(bgWidth * fraction);
-                                }
-                            });
-
-                            bucketBox.add_child(progressBg);
-
-                            // Detail text (resets in...)
-                            if (bucket.description) {
-                                const details = new St.Label({
-                                    text: bucket.description,
-                                    style_class: 'token-tracker-bucket-details'
-                                });
-                                bucketBox.add_child(details);
-                            } else if (bucket.reset_time) {
-                                // Format countdown from ISO reset_time
-                                const countdown = this._getCountdownText(bucket.reset_time);
-                                const details = new St.Label({
-                                    text: `Resets in ${countdown}`,
-                                    style_class: 'token-tracker-bucket-details'
-                                });
-                                bucketBox.add_child(details);
-                            }
-
-                            groupBox.add_child(bucketBox);
-                        }
-
-                        this._quotaContainer.add_child(groupBox);
-                    }
-                } else {
-                    const noDataLabel = new St.Label({
-                        text: 'No active quotas found.',
-                        style_class: 'token-tracker-bucket-details',
-                        style: 'padding: 10px;'
+                for (const bucket of group.buckets) {
+                    const bucketBox = new St.BoxLayout({
+                        vertical: true,
+                        style_class: 'token-tracker-bucket-row'
                     });
-                    this._quotaContainer.add_child(noDataLabel);
+
+                    // Row containing Name and remaining fraction
+                    const labelRow = new St.BoxLayout({
+                        vertical: false,
+                        style_class: 'token-tracker-bucket-header'
+                    });
+
+                    const bucketName = new St.Label({
+                        text: bucket.name,
+                        style_class: 'token-tracker-bucket-name',
+                        x_expand: true
+                    });
+                    labelRow.add_child(bucketName);
+
+                    let fraction = bucket.remaining_fraction !== null ? bucket.remaining_fraction : 1.0;
+                    fraction = Math.max(0.0, Math.min(1.0, fraction));
+                    const percent = Math.round(fraction * 100);
+                    const percentLabel = new St.Label({
+                        text: `${percent}%`,
+                        style_class: 'token-tracker-bucket-fraction'
+                    });
+                    labelRow.add_child(percentLabel);
+                    bucketBox.add_child(labelRow);
+
+                    // Progress Bar
+                    const progressBg = new St.BoxLayout({
+                        style_class: 'token-tracker-progress-bg'
+                    });
+                    
+                    let fillClass = 'token-tracker-progress-fill';
+                    if (fraction < 0.4) {
+                        fillClass += ' danger';
+                    } else if (fraction <= 0.7) {
+                        fillClass += ' warning';
+                    }
+
+                    const progressFill = new St.Widget({
+                        style_class: fillClass
+                    });
+                    progressBg.add_child(progressFill);
+
+                    // Dynamically update fill width when background is allocated/resized
+                    progressBg.connect('notify::width', () => {
+                        const bgWidth = progressBg.width;
+                        if (bgWidth > 0) {
+                            progressFill.width = Math.round(bgWidth * fraction);
+                        }
+                    });
+
+                    bucketBox.add_child(progressBg);
+
+                    // Detail text (resets in...)
+                    if (bucket.description) {
+                        const details = new St.Label({
+                            text: bucket.description,
+                            style_class: 'token-tracker-bucket-details'
+                        });
+                        bucketBox.add_child(details);
+                    } else if (bucket.reset_time) {
+                        // Format countdown from ISO reset_time
+                        const countdown = this._getCountdownText(bucket.reset_time);
+                        const details = new St.Label({
+                            text: `Resets in ${countdown}`,
+                            style_class: 'token-tracker-bucket-details'
+                        });
+                        bucketBox.add_child(details);
+                    }
+
+                    groupBox.add_child(bucketBox);
                 }
 
-                // Update timestamp
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                this._updatedLabel.set_text(`Updated at ${timeStr}`);
-            } else {
-                this._handleError(data.error || 'Disconnected from helper.');
+                this._quotaContainer.add_child(groupBox);
             }
         }
 

@@ -31,26 +31,29 @@ class AntigravityProvider:
         if os.path.exists("/proc"):
             try:
                 for name in os.listdir("/proc"):
-                    if name.isdigit():
-                        pid = int(name)
-                        try:
-                            with open(f"/proc/{pid}/cmdline", "rb") as f:
-                                cmdline_bytes = f.read()
-                                # cmdline args are null-separated
-                                cmdline = cmdline_bytes.replace(b"\x00", b" ").decode("utf-8", errors="ignore").strip()
-                                
-                                # Check if it's an antigravity process
-                                lower_cmd = cmdline.lower()
-                                is_ls = "language-server" in lower_cmd or "language_server" in lower_cmd
-                                is_agy = "antigravity" in lower_cmd or "agy" in lower_cmd or "antigravity-cli" in lower_cmd or "antigravity_cli" in lower_cmd
-                                
-                                if is_ls or is_agy:
-                                    processes.append({
-                                        "pid": pid,
-                                        "cmdline": cmdline
-                                    })
-                        except (IOError, PermissionError):
-                            continue
+                    if not name.isdigit():
+                        continue
+                        
+                    pid = int(name)
+                    try:
+                        with open(f"/proc/{pid}/cmdline", "rb") as f:
+                            cmdline_bytes = f.read()
+                            
+                        # cmdline args are null-separated
+                        cmdline = cmdline_bytes.replace(b"\x00", b" ").decode("utf-8", errors="ignore").strip()
+                        
+                        # Check if it's an antigravity process
+                        lower_cmd = cmdline.lower()
+                        is_ls = "language-server" in lower_cmd or "language_server" in lower_cmd
+                        is_agy = "antigravity" in lower_cmd or "agy" in lower_cmd or "antigravity-cli" in lower_cmd or "antigravity_cli" in lower_cmd
+                        
+                        if is_ls or is_agy:
+                            processes.append({
+                                "pid": pid,
+                                "cmdline": cmdline
+                            })
+                    except (IOError, PermissionError):
+                        continue
                 if processes:
                     return processes
             except Exception:
@@ -111,15 +114,21 @@ class AntigravityProvider:
                         # Header: sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
                         for line in lines[1:]:
                             parts = line.split()
-                            if len(parts) >= 10:
-                                state = parts[3]
-                                inode = parts[9]
-                                if state == "0A" and inode in inodes:
-                                    local_addr = parts[1]
-                                    # Format is IP:PORT in hex (e.g. 0100007F:8F25)
-                                    if ":" in local_addr:
-                                        _, hex_port = local_addr.split(":")
-                                        ports.add(int(hex_port, 16))
+                            if len(parts) < 10:
+                                continue
+                                
+                            state = parts[3]
+                            inode = parts[9]
+                            if state != "0A" or inode not in inodes:
+                                continue
+                                
+                            local_addr = parts[1]
+                            # Format is IP:PORT in hex (e.g. 0100007F:8F25)
+                            if ":" not in local_addr:
+                                continue
+                                
+                            _, hex_port = local_addr.split(":")
+                            ports.add(int(hex_port, 16))
             except Exception:
                 pass
                 
