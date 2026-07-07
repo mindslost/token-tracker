@@ -2,6 +2,10 @@
 
 A native GNOME Shell Extension to monitor rate limits, credit balances, and reset times for AI coding assistants. This project is a Linux/GNOME clone of the popular macOS menu bar app [CodexBar](https://github.com/steipete/CodexBar).
 
+<div align="center">
+  <img src="assets/screenshot.png" alt="Token Tracker Screenshot" width="400"/>
+</div>
+
 The initial MVP supports **Google Antigravity** by auto-detecting the local running language server/CLI and fetching real-time quotas.
 
 ---
